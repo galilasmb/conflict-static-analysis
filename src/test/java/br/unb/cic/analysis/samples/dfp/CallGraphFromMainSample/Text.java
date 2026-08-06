@@ -1,4 +1,4 @@
-package br.unb.cic.analysis.samples.teste;
+package br.unb.cic.analysis.samples.dfp.CallGraphFromMainSample;
 
 public class Text {
     private Report r;

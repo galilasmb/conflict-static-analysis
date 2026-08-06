@@ -1,4 +1,4 @@
-package br.unb.cic.analysis.samples.teste;
+package br.unb.cic.analysis.samples.dfp.CallGraphFromMainSample;
 
 public class ReportSimple implements Report {
     int dupWords = 0;
@@ -6,12 +6,12 @@ public class ReportSimple implements Report {
 
     @Override
     public void countDupWords() {
-        dupWords = dupWords + 1;
+        dupWords++;
     }
 
     @Override
     public void countDupWhiteSpace() {
-        dupWhiteSpace = dupWhiteSpace + 1;
+        dupWhiteSpace++;
     }
 
     @Override

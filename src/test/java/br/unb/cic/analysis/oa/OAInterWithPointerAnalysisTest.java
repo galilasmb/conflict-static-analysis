@@ -32,11 +32,11 @@ public class OAInterWithPointerAnalysisTest {
         stopwatch = Stopwatch.createStarted();
         G.reset();
 
-        SootWrapper.configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis("target/test-classes/", true);
+        SootWrapper.configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis("target/test-classes/", "SPARK");
 
         analysis.configureEntryPoints();
 
-//        saveExecutionTime("Configure Entrypoints OA Inter");
+        saveExecutionTime("Configure Entrypoints OA Inter");
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
         saveExecutionTime("Configure Soot OA Inter");
 
@@ -390,13 +390,11 @@ public class OAInterWithPointerAnalysisTest {
         //Options.v().setPhaseOption("jb.ls", "off"); // remove x = 1; x#2 = 2
         Options.v().setPhaseOption("jb", "use-original-names:true");
 
-        enableCallGraph(true);
+        enableCallGraph("SPARK");
 
         Scene.v().loadNecessaryClasses();
 
         applyPackage("cg");
-
-        SootWrapper.setSparkCG(Scene.v().getCallGraph());
 
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
         analysis.configureEntryPoints();
@@ -459,13 +457,11 @@ public class OAInterWithPointerAnalysisTest {
         //Options.v().setPhaseOption("jb.ls", "off"); // remove x = 1; x#2 = 2
         Options.v().setPhaseOption("jb", "use-original-names:true");
 
-        enableCallGraph(true);
+        enableCallGraph("SPARK");
 
         Scene.v().loadNecessaryClasses();
 
         applyPackage("cg");
-
-        SootWrapper.setSparkCG(Scene.v().getCallGraph());
 
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
         analysis.configureEntryPoints();
@@ -1054,8 +1050,8 @@ public class OAInterWithPointerAnalysisTest {
         saveExecutionTime("Configure Soot OA Inter");
 
         analysis.configureEntryPoints();
-//        saveExecutionTime("Configure Entrypoints OA Inter");
 
+        saveExecutionTime("Configure Entrypoints OA Inter");
 
         SootWrapper.applyPackages();
 

@@ -21,9 +21,12 @@ import java.util.*;
 public abstract class AbstractMergeConflictDefinition {
     protected List<Statement> sourceStatements;
     protected List<Statement> sinkStatements;
+    private Set<Unit> sourceUnitsCache;
+    private Set<Unit> sinkUnitsCache;
     private Set<SootMethod> entryMethods;
     private boolean recursive;
     private int omitExceptingUnitEdges; //1 - true and 2-false
+    private int depthLimit = 5;
 
     public AbstractMergeConflictDefinition() {
         this(false);
@@ -46,11 +49,13 @@ public abstract class AbstractMergeConflictDefinition {
     public void loadSourceStatements() {
         Map<String, List<Integer>> sourceDefinitions = sourceDefinitions();
         sourceStatements = loadStatements(sourceDefinitions, Statement.Type.SOURCE);
+        sourceUnitsCache = null;
     }
 
     public void loadSinkStatements() {
         Map<String, List<Integer>> sinkDefinitions = sinkDefinitions();
         sinkStatements = loadStatements(sinkDefinitions, Statement.Type.SINK);
+        sinkUnitsCache = null;
     }
 
     public List<Statement> getSourceStatements() {
@@ -176,7 +181,7 @@ public abstract class AbstractMergeConflictDefinition {
 
     public List<Statement> traverse(SootMethod sm, List<SootMethod> traversed, List<TraversedLine> traversedLine, Statement.Type type, int level) {
         Body body = retrieveActiveBodySafely(sm);
-        if(traversed.contains(sm) || level > 5 || (!sm.getDeclaringClass().isApplicationClass()) || (body == null)) {
+        if(traversed.contains(sm) || level > depthLimit || (!sm.getDeclaringClass().isApplicationClass()) || (body == null)) {
             return new ArrayList<>();
         }
         level++;
@@ -345,12 +350,32 @@ public abstract class AbstractMergeConflictDefinition {
         this.omitExceptingUnitEdges = value;
     }
 
+    public int getDepthLimit() {
+        return depthLimit;
+    }
+
+    public void setDepthLimit(int depthLimit) {
+        this.depthLimit = depthLimit;
+    }
+
     public boolean isSourceStatement(Unit u) {
-        return sourceStatements.stream().anyMatch(s -> s.getUnit().equals(u));
+        if (sourceUnitsCache == null) {
+            sourceUnitsCache = new HashSet<>();
+            for (Statement s : sourceStatements) {
+                sourceUnitsCache.add(s.getUnit());
+            }
+        }
+        return sourceUnitsCache.contains(u);
     }
 
     public boolean isSinkStatement(Unit u) {
-        return sinkStatements.stream().anyMatch(s -> s.getUnit().equals(u));
+        if (sinkUnitsCache == null) {
+            sinkUnitsCache = new HashSet<>();
+            for (Statement s : sinkStatements) {
+                sinkUnitsCache.add(s.getUnit());
+            }
+        }
+        return sinkUnitsCache.contains(u);
     }
 
     public Set<SootMethod> getEntryMethods() {
@@ -358,6 +383,19 @@ public abstract class AbstractMergeConflictDefinition {
     }
 
     /**
+     * Configures the entry points for the application based on the provided entry method names and statements.
+     *
+     * @param entryMethodNames a list of method names to be considered as entry points
+     * @return a set of SootMethods representing the entry points
+     */
+    public Set<SootMethod> configureEntryPoints(List<String> entryMethodNames) throws NoSuchMethodException {
+        Set<SootMethod> entryPoints = new HashSet<>();
+        addMethodsToEntryPoints(entryPoints, entryMethodNames);
+        return entryPoints;
+    }
+
+    /**
+
      * Auxiliary method to extract the SootClass from a method signature.
      *
      * @param fullMethodSignature the full method signature. E.g: <br.unb.cic.analysis.samples.ioa.ObjectFieldNotConflictSample: void m()>
@@ -393,12 +431,6 @@ public abstract class AbstractMergeConflictDefinition {
         }
     }
 
-    public Set<SootMethod> configureEntryPoints(List<String> entryMethodNames) throws NoSuchMethodException {
-        Set<SootMethod> entryPoints = new HashSet<>();
-        addMethodsToEntryPoints(entryPoints, entryMethodNames);
-        return entryPoints;
-    }
-
     /**
      * Adds methods to the entry points set based on the provided method names and SootClass.
      *
@@ -429,6 +461,5 @@ public abstract class AbstractMergeConflictDefinition {
             }
         }
     }
-
 
 }

@@ -1,4 +1,4 @@
-package br.unb.cic.analysis.samples.teste;
+package br.unb.cic.analysis.samples.ioa.CallGraphFromMainSample;
 
 public class ReportAdvanced implements Report {
     int fixes = 0;

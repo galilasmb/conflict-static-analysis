@@ -128,6 +128,7 @@ public class Conflict {
                 sourceMethodName, sourceLineNumber, sourceUnit, sourceTraversedLine,
                 sinkClassName, sinkMethodName, sinkLineNumber, sinkUnit, sinkTraversedLine);
     }
+
     public String toJSON() {
         return this.formatJSON("CONFLICT", "Conflict");
     }
@@ -135,9 +136,9 @@ public class Conflict {
     protected String formatJSON(String type, String label) {
         return String.format(
                 "{" + "\n" +
-                        "\t" + "\"type\": \"%s\"," + "\n" +
-                        "\t" + "\"label\": \"%s\"," + "\n" +
-                        "\t" + "\"body\": {" + "\n" +
+                    "\t" + "\"type\": \"%s\"," + "\n" +
+                    "\t" + "\"label\": \"%s\"," + "\n" +
+                    "\t" + "\"body\": {" + "\n" +
                         "\t\t" + "\"description\": \"%s - %s\"," + "\n" +
                         "\t\t" + "\"interference\": [" + "\n" +
                         "\t\t\t" + "{" + "\n" +

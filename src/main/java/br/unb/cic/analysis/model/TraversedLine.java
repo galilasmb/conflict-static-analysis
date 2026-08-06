@@ -49,5 +49,4 @@ public class TraversedLine {
                 sootClass.getName(), sootMethod.getName(), lineNumber
         );
     }
-
 }

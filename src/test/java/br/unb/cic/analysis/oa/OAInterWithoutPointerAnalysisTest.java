@@ -32,15 +32,14 @@ public class OAInterWithoutPointerAnalysisTest {
         stopwatch = Stopwatch.createStarted();
         G.reset();
 
-        SootWrapper.configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis("target/test-classes/", false);
+        SootWrapper.configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis("target/test-classes/", "CHA");
 
 
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
         saveExecutionTime("Configure Soot OA Inter");
 
         analysis.configureEntryPoints();
-//        saveExecutionTime("Configure Entrypoints OA Inter");
-
+        saveExecutionTime("Configure Entrypoints OA Inter");
 
         SootWrapper.applyPackages();
 
@@ -391,13 +390,12 @@ public class OAInterWithoutPointerAnalysisTest {
         //Options.v().setPhaseOption("jb.ls", "off"); // remove x = 1; x#2 = 2
         Options.v().setPhaseOption("jb", "use-original-names:true");
 
-        enableCallGraph(false);
+        enableCallGraph("CHA");
 
         Scene.v().loadNecessaryClasses();
 
         applyPackage("cg");
 
-        SootWrapper.setChaCG(Scene.v().getCallGraph());
 
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
         analysis.configureEntryPoints();
@@ -458,13 +456,11 @@ public class OAInterWithoutPointerAnalysisTest {
         //Options.v().setPhaseOption("jb.ls", "off"); // remove x = 1; x#2 = 2
         Options.v().setPhaseOption("jb", "use-original-names:true");
 
-        enableCallGraph(false);
+        enableCallGraph("CHA");
 
         Scene.v().loadNecessaryClasses();
 
         applyPackage("cg");
-
-        SootWrapper.setChaCG(Scene.v().getCallGraph());
 
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
         analysis.configureEntryPoints();
@@ -1042,8 +1038,7 @@ public class OAInterWithoutPointerAnalysisTest {
         saveExecutionTime("Configure Soot OA Inter");
 
         analysis.configureEntryPoints();
-//        saveExecutionTime("Configure Entrypoints OA Inter");
-
+        saveExecutionTime("Configure Entrypoints OA Inter");
 
         SootWrapper.applyPackages();
 
@@ -1079,4 +1074,5 @@ public class OAInterWithoutPointerAnalysisTest {
         configureTest(analysis);
         Assert.assertTrue(analysis.getConflicts().size() > 1);
     }
+
 }

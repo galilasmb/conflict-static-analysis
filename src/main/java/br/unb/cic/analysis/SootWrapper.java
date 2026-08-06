@@ -4,8 +4,6 @@ import com.google.common.base.Stopwatch;
 import soot.G;
 import soot.PackManager;
 import soot.Scene;
-import soot.jimple.spark.SparkTransformer;
-import soot.jimple.toolkits.callgraph.CHATransformer;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.options.Options;
@@ -24,7 +22,8 @@ import java.util.concurrent.TimeUnit;
  * analysis tool.
  */
 public class SootWrapper {
-    static CallGraph sparkCG, chaCG;
+    private static CallGraphAlgorithm callGraphAlgorithm;
+    private static Map<String, Long> packageExecutionTimes = new HashMap<>();
     private String classPath;
     private String classes;
 
@@ -55,10 +54,10 @@ public class SootWrapper {
     }
 
     public static void configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis(String classpath) {
-        configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis(classpath, true);
+        configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis(classpath, "SPARK");
     }
 
-    public static void configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis(String classpath, boolean usePointsToAnalysis) {
+    public static void configureSootOptionsToRunInterproceduralOverrideAssignmentAnalysis(String classpath, String cgAlgorithm) {
         G.reset();
         List<String> classes = Collections.singletonList(classpath);
 
@@ -86,91 +85,11 @@ public class SootWrapper {
         }
         configureSootJBOptions();
 
-        enableCallGraph(usePointsToAnalysis);
+        enableCallGraph(cgAlgorithm);
 
         Scene.v().loadNecessaryClasses();
-//        applyPackage("cg");
+        //applyPackage("cg");
 
-    }
-
-    public static void applyPackage(String p) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-//        System.out.println("Applying package: " + p);
-        try {
-            PackManager.v().getPack(p).apply();
-            //System.out.println("Successfully applied package: " + p);
-        } catch (Exception e) {
-            System.err.println("Error applying package: " + p);
-            e.printStackTrace();
-        } finally {
-//            saveExecutionTime("Successfully applied package: " + p, stopwatch);
-        }
-    }
-
-    public static void saveExecutionTime(String description, Stopwatch stopwatch) {
-
-        NumberFormat formatter = new DecimalFormat("#0.00000");
-
-        long time = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-        try {
-            FileWriter myWriter = new FileWriter("time.txt", true);
-            myWriter.write(description + ";" + formatter.format(time / 1000d) + "\n");
-            System.out.println(description + " " + formatter.format(time / 1000d));
-            myWriter.close();
-        } catch (IOException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-        }
-    }
-
-    public static void enableCallGraph() {
-        enableCallGraph(true);
-    }
-
-    public static void enableCallGraph(boolean usePointsToAnalysis) {
-//        System.out.println("CG configuration init.");
-
-        if (usePointsToAnalysis) {
-            //enableRtaCallGraph();
-            enableSparkCallGraph();
-            //enableVtaCallGraph();
-        } else {
-            enableCHACallGraph();
-        }
-//        System.out.println("CG configuration completed.");
-    }
-
-    private static void enableCHACallGraph() {
-        // System.out.println("Enable CHA CG");
-        Options.v().setPhaseOption("cg.cha", "enabled:true");
-
-        //AppOnly (apponly): Setting this option to true causes Soot to only consider application classes when building the callgraph. The resulting callgraph will be inherently unsound. Still, this option can make sense if performance optimization and memory reduction are your primary goal.
-        //Options.v().setPhaseOption("cg.cha", "apponly:true"); // Explicar detalhes de config
-    }
-
-    private static void enableSparkCallGraph() {
-        System.out.println("Enable Spark CG");
-        Options.v().setPhaseOption("cg.spark", "on");
-    }
-
-    public static String pathToJCE() {
-        String javaHome = System.getProperty("java.home");
-        File jreDir = new File(javaHome, "jre");
-        if (jreDir.exists() && jreDir.isDirectory()) {
-            return jreDir.getPath() + File.separator + "lib" + File.separator + "jce.jar";
-        } else {
-            return javaHome + File.separator + "lib" + File.separator + "jce.jar";
-        }
-    }
-
-    public static String pathToRT() {
-        String javaHome = System.getProperty("java.home");
-        File jreDir = new File(javaHome, "jre");
-        if (jreDir.exists() && jreDir.isDirectory()) {
-            return jreDir.getPath() + File.separator + "lib" + File.separator + "rt.jar";
-        } else {
-            return javaHome + File.separator + "lib" + File.separator + "rt.jar";
-        }
     }
 
     private static void configureSootJBOptions() {
@@ -205,6 +124,60 @@ public class SootWrapper {
         return count;
     }
 
+    public static void enableCallGraph() {
+        enableCallGraph("SPARK");
+    }
+
+    public static void enableCallGraph(String cgAlgorithm) {
+        callGraphAlgorithm = CallGraphAlgorithm.fromString(cgAlgorithm);
+
+        System.out.println("CG configuration init");
+
+        switch (callGraphAlgorithm) {
+            case CHA:
+                enableCHACallGraph();
+                break;
+            case RTA:
+                enableRtaCallGraph();
+                break;
+            case VTA:
+                enableVtaCallGraph();
+                break;
+            case SPARK:
+                enableSparkCallGraph();
+                break;
+        }
+
+        System.out.println("CG configuration completed.");
+    }
+
+    private static void enableCHACallGraph() {
+        System.out.println("Enable CHA CG");
+        Options.v().setPhaseOption("cg.cha", "enabled:true");
+
+        //AppOnly (apponly): Setting this option to true causes Soot to only consider application classes when building the callgraph. The resulting callgraph will be inherently unsound. Still, this option can make sense if performance optimization and memory reduction are your primary goal.
+        //Options.v().setPhaseOption("cg.cha", "apponly:true"); // Explicar detalhes de config
+    }
+
+    private static void enableSparkCallGraph() {
+        System.out.println("Enable Spark CG");
+        Options.v().setPhaseOption("cg.spark", "on");
+    }
+
+
+    private static void enableVtaCallGraph() {
+        System.out.println("Enable VTA CG");
+        Options.v().setPhaseOption("cg.spark", "enabled:true");
+        Options.v().setPhaseOption("cg.spark", "vta:true");
+    }
+
+    private static void enableRtaCallGraph() {
+        System.out.println("Enable RTA CG");
+        Options.v().setPhaseOption("cg.spark", "enabled:true");
+        Options.v().setPhaseOption("cg.spark", "rta:true");
+        Options.v().setPhaseOption("cg.spark", "on-fly-cg:false");
+    }
+
     private static List<String> configurePackagesWithCallGraph() {
         List<String> packages = new ArrayList<String>();
         packages.add("cg");
@@ -213,9 +186,48 @@ public class SootWrapper {
     }
 
     public static void applyPackages() {
-        configurePackagesWithCallGraph().forEach(p -> {
+        List<String> packages = configurePackagesWithCallGraph();
+
+        for (String p : packages) {
+            applyPackage(p);
+        }
+    }
+
+    public static void applyPackage(String p) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        System.out.println("Applying package: " + p);
+        try {
             PackManager.v().getPack(p).apply();
-        });
+        } catch (Exception e) {
+            System.err.println("Error applying package: " + p);
+            e.printStackTrace();
+        } finally {
+            long elapsedMs = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+            packageExecutionTimes.put(p, elapsedMs);
+
+            saveExecutionTime("Successfully applied package: " + p, elapsedMs);
+        }
+    }
+
+    public static void saveExecutionTime(String description, long elapsedMs) {
+        NumberFormat formatter = new DecimalFormat("#0.00000");
+
+        try (FileWriter myWriter = new FileWriter("time.txt", true)) {
+            myWriter.write(description + ";" + formatter.format(elapsedMs / 1000d) + "\n");
+            System.out.println(description + " " + formatter.format(elapsedMs / 1000d));
+        } catch (IOException e) {
+            System.out.println("An error occurred while saving execution time.");
+            e.printStackTrace();
+        }
+    }
+
+
+    public static Map<String, Long> getPackageExecutionTimes() {
+        return Collections.unmodifiableMap(packageExecutionTimes);
+    }
+
+    public static CallGraphAlgorithm getCallGraphAlgorithm() {
+        return callGraphAlgorithm;
     }
 
     public static class Builder {
@@ -251,12 +263,32 @@ public class SootWrapper {
         }
 
         public SootWrapper build() {
-            if(classes.isEmpty() || classPath.isEmpty()) {
+            if (classes.isEmpty() || classPath.isEmpty()) {
                 throw new RuntimeException("You should only call the build method " +
                         "after setting the class path and adding at least " +
                         "one class.");
             }
             return new SootWrapper(classPath, classes);
+        }
+    }
+
+    public static String pathToJCE() {
+        String javaHome = System.getProperty("java.home");
+        File jreDir = new File(javaHome, "jre");
+        if (jreDir.exists() && jreDir.isDirectory()) {
+            return jreDir.getPath() + File.separator + "lib" + File.separator + "jce.jar";
+        } else {
+            return javaHome + File.separator + "lib" + File.separator + "jce.jar";
+        }
+    }
+
+    public static String pathToRT() {
+        String javaHome = System.getProperty("java.home");
+        File jreDir = new File(javaHome, "jre");
+        if (jreDir.exists() && jreDir.isDirectory()) {
+            return jreDir.getPath() + File.separator + "lib" + File.separator + "rt.jar";
+        } else {
+            return javaHome + File.separator + "lib" + File.separator + "rt.jar";
         }
     }
 
@@ -273,13 +305,5 @@ public class SootWrapper {
         return Integer.parseInt(version);
     }
 
-    public static void setSparkCG(CallGraph sparkCG) {
-        SootWrapper.sparkCG = sparkCG;
-    }
-
-    public static void setChaCG(CallGraph chaCG) {
-        SootWrapper.chaCG = chaCG;
-    }
-
-
 }
+
